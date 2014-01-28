@@ -1,5 +1,8 @@
+[![Build Status](https://travis-ci.org/chansen/c-timestamp.png?branch=master)](https://travis-ci.org/chansen/c-timestamp) [![Coverage Status](https://coveralls.io/repos/chansen/c-timestamp/badge.png)](https://coveralls.io/r/chansen/c-timestamp)
+
 timestamp
 =========
+
 
 ```c
 
