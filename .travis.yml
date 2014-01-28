@@ -2,12 +2,12 @@ language: perl
 install: "perl -V"
 before_script:
     - "cpanm -n Test::Harness"
-    - "cpanm -n Devel::Cover::Report::Coveralls"
+    - sudo pip install cpp-coveralls --use-mirrors
 script: "make test"
 after_success:
     - "make clean"
-    - "make cover"
-    - "cover --no-gcov -report coveralls"
+    - "make gcov"
+    - coveralls --exclude t
 notifications:
   recipients:
     - chansen@cpan.org
