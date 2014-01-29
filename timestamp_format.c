@@ -39,15 +39,15 @@ rdn_to_ymd(uint32_t rdn, uint16_t *yp, uint16_t *mp, uint16_t *dp) {
     d %= 146097;
 
     n100 = d / 36524;
-    y += 100 * n100;
     d %= 36524;
+    y += 100 * n100;
 
     y += 4 * (d / 1461);
     d %= 1461;
 
     n1 = d / 365;
-    y += n1;
     d %= 365;
+    y += n1;
 
     if (n100 == 4 || n1 == 4)
         d = 366;
@@ -55,8 +55,10 @@ rdn_to_ymd(uint32_t rdn, uint16_t *yp, uint16_t *mp, uint16_t *dp) {
         y++, d++;
 
     m = (5 * d + 456) / 153;
-    if   (m > 12) m -= 12;
-    else          y -= 1;
+    if (m > 12)
+        m -= 12;
+    else
+        y--;
 
     *yp = y;
     *mp = m;
@@ -77,20 +79,33 @@ timestamp_valid(const timestamp_t *tsp) {
     return 1;
 }
 
+/*
+ *          1         2         3
+ * 12345678901234567890123456789012345 (+ null-terminator)
+ * YYYY-MM-DDThh:mm:ssZ
+ * YYYY-MM-DDThh:mm:ss±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123Z
+ * YYYY-MM-DDThh:mm:ss.123±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123456Z
+ * YYYY-MM-DDThh:mm:ss.123456±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123456789Z
+ * YYYY-MM-DDThh:mm:ss.123456789±hh:mm
+ */
+
 size_t
 timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
     unsigned char *p;
     uint64_t sec;
     uint32_t rdn, f, v;
     uint16_t y, m, d;
-    size_t need, flen;
+    size_t dlen, flen;
 
     if (!timestamp_valid(tsp))
         return 0;
 
-    need = sizeof("YYYY-MM-DDThh:mm:ssZ");
+    dlen = sizeof("YYYY-MM-DDThh:mm:ssZ") - 1;
     if (tsp->offset)
-        need += 5; /* hh:mm */
+        dlen += 5; /* hh:mm */
 
     f = tsp->nsec;
     if (!f)
@@ -99,10 +114,10 @@ timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
         if      ((f % 1000000) == 0) f /= 1000000, flen =  4; /* .milli */
         else if ((f % 1000)    == 0) f /=    1000, flen =  7; /* .micro */
         else                                       flen = 10; /* .nano  */
-        need += flen;
+        dlen += flen;
     }
 
-    if (need > len)
+    if (dlen >= len)
         return 0;
 
     sec = tsp->sec + tsp->offset * 60 + EPOCH;
@@ -173,6 +188,6 @@ timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
         p += 6;
     }
     *p = 0;
-    return p - (unsigned char *)dst;
+    return dlen;
 }
 
