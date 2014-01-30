@@ -63,12 +63,15 @@ const struct test_t {
     { {                     0,         0,   -90 }, "1969-12-31T22:30:00-01:30"       },
     { {                     0,         0,  -120 }, "1969-12-31T22:00:00-02:00"       },
     { {                     0,         0, -1439 }, "1969-12-31T00:01:00-23:59"       },
+    { {             951782400,         0,     0 }, "2000-02-29T00:00:00Z"            },
+    { {            1078012800,         0,     0 }, "2004-02-29T00:00:00Z"            },
 };
 
 int 
 main() {
     int i, ntests;
     char buf[40];
+    timestamp_t ts;
 
     ntests = sizeof(tests) / sizeof(*tests);
     for (i = 0; i < ntests; i++) {
@@ -79,6 +82,50 @@ main() {
         cmp_ok(n, "==", strlen(t.exp), "timestamp_format(exp: \"%s\")", t.exp);
         is(buf, t.exp);
     }
+
+    {
+        ts.sec    =  0;
+        ts.offset =  0;
+        ts.nsec   = -1;
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "nsec out of range");
+        ts.nsec   = 1000000000;
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "nsec out of range");
+        ts.nsec   =  0;
+        ts.offset = -23 * 60 - 60;
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "offset out of range");
+        ts.offset = +23 * 60 + 60;
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "offset out of range");
+        ts.offset = 0;
+        ts.sec    = INT64_C(-62135596801); /* 0000-12-31T23:59:59Z */
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "sec out of range");
+        ts.sec    = INT64_C(253402387140); /* 10000-01-01T23:59:00Z */
+        ok(!timestamp_format(buf, sizeof(buf), &ts), "sec out of range");
+    }
+    
+   /*
+    *          1         2         3
+    * 12345678901234567890123456789012345 (+ null-terminator)
+    * YYYY-MM-DDThh:mm:ssZ
+    * YYYY-MM-DDThh:mm:ss±hh:mm
+    * YYYY-MM-DDThh:mm:ss.123Z
+    * YYYY-MM-DDThh:mm:ss.123±hh:mm
+    * YYYY-MM-DDThh:mm:ss.123456Z
+    * YYYY-MM-DDThh:mm:ss.123456±hh:mm
+    * YYYY-MM-DDThh:mm:ss.123456789Z
+    * YYYY-MM-DDThh:mm:ss.123456789±hh:mm
+    */
+
+    {
+        ts.sec    = 0;
+        ts.offset = 0;
+        ts.nsec   = 0;
+        ok( timestamp_format(buf, 21, &ts), "suffcient buffer size");
+        ok(!timestamp_format(buf, 20, &ts), "insufficient buffer size");
+        ts.offset = 1;
+        ok( timestamp_format(buf, 26, &ts), "suffcient buffer size");
+        ok(!timestamp_format(buf, 25, &ts), "insufficient buffer size");
+    }
+
     done_testing();
 }
 

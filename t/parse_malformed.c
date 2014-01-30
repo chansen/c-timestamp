@@ -15,6 +15,8 @@ const struct test_t {
     { "1970-01-01T23:60:00Z"            }, /* Invalid minute                        */
     { "1970-01-01T23:59:61Z"            }, /* Invalid second                        */
     { "1970-01-01T23:59:59+01"          }, /* Invalid zone offset                   */
+    { "1970-01-01T23:59:59+01:"         }, /* Invalid zone offset                   */
+    { "1970-01-01T23:59:59+01:0"        }, /* Invalid zone offset                   */
     { "1970-01-01T23:59:59+0100"        }, /* Invalid zone offset                   */
     { "1970-01-01T23:59:59+24:00"       }, /* Zone hour > 23                        */
     { "1970-01-01T23:59:59+01:60"       }, /* Zone minute > 59                      */
@@ -24,12 +26,21 @@ const struct test_t {
     { "1970-01-01X23:59:59Z"            }, /* Invalid time designator               */
     { "1970:01:01T23-59-59Z"            }, /* Invalid separators                    */
     { "1970-01-01T00:00:00.Z"           }, /* Fraction must have at-least one digit */
+    { "X970-01-01T00:00:00Z"            }, /* Non-digit in component                */
+    { "1X70-01-01T00:00:00Z"            }, /* Non-digit in component                */
+    { "19X0-01-01T00:00:00Z"            }, /* Non-digit in component                */
+    { "197X-01-01T00:00:00Z"            }, /* Non-digit in component                */
+    { "1970-X1-01T00:00:00Z"            }, /* Non-digit in component                */
     { "1970-0X-01T00:00:00Z"            }, /* Non-digit in component                */
+    { "1970-00-X1T00:00:00Z"            }, /* Non-digit in component                */
+    { "1970-00-0XT00:00:00Z"            }, /* Non-digit in component                */
     { "1970-01-01T0X:00:00Z"            }, /* Non-digit in component                */
     { "1970-01-01T00:0X:00Z"            }, /* Non-digit in component                */
     { "1970-01-01T00:00:0XZ"            }, /* Non-digit in component                */
+    { "1970-01-01T00:00:00.12345X7890Z" }, /* Non-digit in component                */
     { "1970-01-01T00:00:00.1234567890Z" }, /* Fraction > 9 digits                   */
     { "1970-01-01T00:00:00,123456789Z"  }, /* Decimal sign must be full stop        */
+    { "1970-01-01T00:00:00Z "           }, /* Trailing space                        */
 };
 
 int 
