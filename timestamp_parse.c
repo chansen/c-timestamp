@@ -40,17 +40,25 @@ month_days(uint16_t y, uint16_t m) {
     return days[m == 2 && leap_year(y)][m];
 }
 
-static int
-parse_digits(const unsigned char * const p, size_t i, const size_t end, uint16_t *vp) {
-    unsigned int v = 0;
+static int 
+parse_2d(const unsigned char * const p, size_t i, uint16_t *vp) {
+    unsigned char d0, d1;
+    if (((d0 = p[i + 0] - '0') > 9) ||
+        ((d1 = p[i + 1] - '0') > 9))
+        return 1;
+    *vp = d0 * 10 + d1;
+    return 0;
+}
 
-    for(; i <= end; i++) {
-        const unsigned char c = p[i];
-        if (c < '0' || c > '9')
-            return 1;
-        v = v * 10 + c - '0';
-    }
-    *vp = v;
+static int 
+parse_4d(const unsigned char * const p, size_t i, uint16_t *vp) {
+    unsigned char d0, d1, d2, d3;
+    if (((d0 = p[i + 0] - '0') > 9) ||
+        ((d1 = p[i + 1] - '0') > 9) ||
+        ((d2 = p[i + 2] - '0') > 9) ||
+        ((d3 = p[i + 3] - '0') > 9))
+        return 1;
+    *vp = d0 * 1000 + d1 * 100 + d2 * 10 + d3;
     return 0;
 }
 
@@ -85,12 +93,12 @@ timestamp_parse(const char *str, size_t len, timestamp_t *tsp) {
     if (!(ch == 'T' || ch == ' ' || ch == 't'))
         return 1;
 
-    if (parse_digits(cur,  0,  3, &year)  || year  <  1 ||
-        parse_digits(cur,  5,  6, &month) || month <  1 || month > 12 ||
-        parse_digits(cur,  8,  9, &day)   || day   <  1 || day   > 31 ||
-        parse_digits(cur, 11, 12, &hour)  || hour  > 23 ||
-        parse_digits(cur, 14, 15, &min)   || min   > 59 ||
-        parse_digits(cur, 17, 18, &sec)   || sec   > 59)
+    if (parse_4d(cur,  0, &year)  || year  <  1 ||
+        parse_2d(cur,  5, &month) || month <  1 || month > 12 ||
+        parse_2d(cur,  8, &day)   || day   <  1 || day   > 31 ||
+        parse_2d(cur, 11, &hour)  || hour  > 23 ||
+        parse_2d(cur, 14, &min)   || min   > 59 ||
+        parse_2d(cur, 17, &sec)   || sec   > 59)
         return 1;
 
     if (day > 28 && day > month_days(year, month))
@@ -105,18 +113,17 @@ timestamp_parse(const char *str, size_t len, timestamp_t *tsp) {
     cur = cur + 19;
     offset = nsec = 0;
 
-    ch = *cur;
+    ch = *cur++;
     if (ch == '.') {
         const unsigned char *start;
         size_t ndigits;
 
-        start = ++cur;
-        while (cur < end) {
-            ch = *cur;
-            if (ch < '0' || ch > '9')
+        start = cur;
+        for (; cur < end; cur++) {
+            const unsigned char digit = *cur - '0';
+            if (digit > 9)
                 break;
-            nsec = nsec * 10 + ch - '0';
-            cur++;
+            nsec = nsec * 10 + digit;
         }
 
         ndigits = cur - start;
@@ -124,12 +131,13 @@ timestamp_parse(const char *str, size_t len, timestamp_t *tsp) {
             return 1;
 
         nsec *= Pow10[9 - ndigits];
+
+        if (cur == end)
+            return 1;
+
+        ch = *cur++;
     }
 
-    if (cur == end)
-        return 1;
-
-    ch = *cur++;
     if (!(ch == 'Z' || ch == 'z')) {
         /*
          *  01234
@@ -138,8 +146,8 @@ timestamp_parse(const char *str, size_t len, timestamp_t *tsp) {
         if (cur + 5 < end || !(ch == '+' || ch == '-') || cur[2] != ':')
             return 1;
 
-        if (parse_digits(cur, 0, 1, &hour) || hour > 23 ||
-            parse_digits(cur, 3, 4, &min)  || min  > 59)
+        if (parse_2d(cur, 0, &hour) || hour > 23 ||
+            parse_2d(cur, 3, &min)  || min  > 59)
             return 1;
 
         offset = hour * 60 + min;
