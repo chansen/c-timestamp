@@ -38,9 +38,10 @@ typedef struct {
     int16_t offset; /* Offset from UTC in minutes [-1439, 1439] */
 } timestamp_t;
 
-int    timestamp_parse(const char *str, size_t len, timestamp_t *tsp);
-size_t timestamp_format(char *dst, size_t len, const timestamp_t *tsp);
-int    timestamp_compare(const timestamp_t *tsp1, const timestamp_t *tsp2);
+int    timestamp_parse            (const char *str, size_t len, timestamp_t *tsp);
+size_t timestamp_format           (char *dst, size_t len, const timestamp_t *tsp);
+size_t timestamp_format_precision (char *dst, size_t len, const timestamp_t *tsp, int precision);
+int    timestamp_compare          (const timestamp_t *tsp1, const timestamp_t *tsp2);
 
 #ifdef __cplusplus
 }

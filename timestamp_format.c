@@ -79,43 +79,24 @@ timestamp_valid(const timestamp_t *tsp) {
     return 1;
 }
 
-/*
- *          1         2         3
- * 12345678901234567890123456789012345 (+ null-terminator)
- * YYYY-MM-DDThh:mm:ssZ
- * YYYY-MM-DDThh:mm:ss±hh:mm
- * YYYY-MM-DDThh:mm:ss.123Z
- * YYYY-MM-DDThh:mm:ss.123±hh:mm
- * YYYY-MM-DDThh:mm:ss.123456Z
- * YYYY-MM-DDThh:mm:ss.123456±hh:mm
- * YYYY-MM-DDThh:mm:ss.123456789Z
- * YYYY-MM-DDThh:mm:ss.123456789±hh:mm
- */
+static const uint32_t Pow10[10] = {
+    1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000
+};
 
-size_t
-timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
+static size_t
+timestamp_format_internal(char *dst, size_t len, const timestamp_t *tsp, const int precision) {
     unsigned char *p;
     uint64_t sec;
-    uint32_t rdn, f, v;
+    uint32_t rdn, v;
     uint16_t y, m, d;
-    size_t dlen, flen;
-
-    if (!timestamp_valid(tsp))
-        return 0;
+    size_t dlen;
 
     dlen = sizeof("YYYY-MM-DDThh:mm:ssZ") - 1;
     if (tsp->offset)
         dlen += 5; /* hh:mm */
 
-    f = tsp->nsec;
-    if (!f)
-        flen = 0;
-    else {
-        if      ((f % 1000000) == 0) f /= 1000000, flen =  4; /* .milli */
-        else if ((f % 1000)    == 0) f /=    1000, flen =  7; /* .micro */
-        else                                       flen = 10; /* .nano  */
-        dlen += flen;
-    }
+    if (precision)
+        dlen += 1 + precision;
 
     if (dlen >= len)
         return 0;
@@ -125,51 +106,49 @@ timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
 
     rdn_to_ymd(rdn, &y, &m, &d);
 
+   /*
+    *           1
+    * 0123456789012345678
+    * YYYY-MM-DDThh:mm:ss
+    */
     p = (unsigned char *)dst;
-    p[3] = '0' + (y % 10); y /= 10;
-    p[2] = '0' + (y % 10); y /= 10;
-    p[1] = '0' + (y % 10); y /= 10;
-    p[0] = '0' + (y % 10);
-    p += 4;
-
-    p[2] = '0' + (m % 10); m /= 10;
-    p[1] = '0' + (m % 10);
-    p[0] = '-';
-    p += 3;
-
-    p[2] = '0' + (d % 10); d /= 10;
-    p[1] = '0' + (d % 10);
-    p[0] = '-';
-    p += 3;
-
     v = sec % 86400;
-    p[8] = '0' + (v % 10); v /= 10;
-    p[7] = '0' + (v %  6); v /=  6;
-    p[6] = ':';
-    p[5] = '0' + (v % 10); v /= 10;
-    p[4] = '0' + (v %  6); v /=  6;
-    p[3] = ':';
-    p[2] = '0' + (v % 10); v /= 10;
-    p[1] = '0' + (v % 10);
-    p[0] = 'T';
-    p += 9;
+    p[18] = '0' + (v % 10); v /= 10;
+    p[17] = '0' + (v %  6); v /=  6;
+    p[16] = ':';
+    p[15] = '0' + (v % 10); v /= 10;
+    p[14] = '0' + (v %  6); v /=  6;
+    p[13] = ':';
+    p[12] = '0' + (v % 10); v /= 10;
+    p[11] = '0' + (v % 10);
+    p[10] = 'T';
+    p[ 9] = '0' + (d % 10); d /= 10;
+    p[ 8] = '0' + (d % 10);
+    p[ 7] = '-';
+    p[ 6] = '0' + (m % 10); m /= 10;
+    p[ 5] = '0' + (m % 10);
+    p[ 4] = '-';
+    p[ 3] = '0' + (y % 10); y /= 10;
+    p[ 2] = '0' + (y % 10); y /= 10;
+    p[ 1] = '0' + (y % 10); y /= 10;
+    p[ 0] = '0' + (y % 10);
+    p += 19;
 
-    if (flen) {
-        if (flen > 7) {
-            p[9] = '0' + (f % 10); f /= 10;
-            p[8] = '0' + (f % 10); f /= 10;
-            p[7] = '0' + (f % 10); f /= 10;
+    if (precision) {
+        v = tsp->nsec / Pow10[9 - precision];
+        switch (precision) {
+            case 9: p[9] = '0' + (v % 10); v /= 10;
+            case 8: p[8] = '0' + (v % 10); v /= 10;
+            case 7: p[7] = '0' + (v % 10); v /= 10;
+            case 6: p[6] = '0' + (v % 10); v /= 10;
+            case 5: p[5] = '0' + (v % 10); v /= 10;
+            case 4: p[4] = '0' + (v % 10); v /= 10;
+            case 3: p[3] = '0' + (v % 10); v /= 10;
+            case 2: p[2] = '0' + (v % 10); v /= 10;
+            case 1: p[1] = '0' + (v % 10);
         }
-        if (flen > 4) {
-            p[6] = '0' + (f % 10); f /= 10;
-            p[5] = '0' + (f % 10); f /= 10;
-            p[4] = '0' + (f % 10); f /= 10;
-        }
-        p[3] = '0' + (f % 10); f /= 10;
-        p[2] = '0' + (f % 10); f /= 10;
-        p[1] = '0' + (f % 10);
         p[0] = '.';
-        p += flen;
+        p += 1 + precision;
     }
 
     if (!tsp->offset)
@@ -189,5 +168,44 @@ timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
     }
     *p = 0;
     return dlen;
+}
+
+/*
+ *          1         2         3
+ * 12345678901234567890123456789012345 (+ null-terminator)
+ * YYYY-MM-DDThh:mm:ssZ
+ * YYYY-MM-DDThh:mm:ss±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123Z
+ * YYYY-MM-DDThh:mm:ss.123±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123456Z
+ * YYYY-MM-DDThh:mm:ss.123456±hh:mm
+ * YYYY-MM-DDThh:mm:ss.123456789Z
+ * YYYY-MM-DDThh:mm:ss.123456789±hh:mm
+ */
+
+size_t
+timestamp_format(char *dst, size_t len, const timestamp_t *tsp) {
+    uint32_t f;
+    int precision;
+
+    if (!timestamp_valid(tsp))
+        return 0;
+
+    f = tsp->nsec;
+    if (!f)
+        precision = 0;
+    else {
+        if      ((f % 1000000) == 0) precision = 3;
+        else if ((f %    1000) == 0) precision = 6;
+        else                         precision = 9;
+    }
+    return timestamp_format_internal(dst, len, tsp, precision);
+}
+
+size_t
+timestamp_format_precision(char *dst, size_t len, const timestamp_t *tsp, int precision) {
+    if (!timestamp_valid(tsp) || precision < 0 || precision > 9)
+        return 0;
+    return timestamp_format_internal(dst, len, tsp, precision);
 }
 
