@@ -6,20 +6,24 @@ LDFLAGS += -lc $(DLDFLAGS)
 SOURCES = \
 	timestamp_compare.c \
 	timestamp_format.c \
-	timestamp_parse.c
+	timestamp_parse.c \
+	timestamp_valid.c
 
 OBJECTS = \
 	timestamp_compare.o \
 	timestamp_format.o \
-	timestamp_parse.o
+	timestamp_parse.o \
+	timestamp_valid.o
 
 HARNESS_OBJS = \
+	t/valid.o \
 	t/compare.o \
 	t/format.o \
 	t/parse_wellformed.o \
 	t/parse_malformed.o
 
 HARNESS_EXES = \
+	t/valid.t \
 	t/compare.t \
 	t/format.t \
 	t/parse_wellformed.t \
@@ -36,6 +40,9 @@ HARNESS_DEPS = \
 
 .o.t:
 	$(CC) $(LDFLAGS) $< $(HARNESS_DEPS) -o $@
+
+t/valid.o: \
+	$(HARNESS_DEPS) t/valid.c
 
 t/compare.o: \
 	$(HARNESS_DEPS) t/compare.c

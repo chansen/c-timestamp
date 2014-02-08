@@ -23,6 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stddef.h>
 #include "timestamp.h"
 
 static const uint16_t DayOffset[13] = {
@@ -65,19 +66,7 @@ rdn_to_ymd(uint32_t rdn, uint16_t *yp, uint16_t *mp, uint16_t *dp) {
     *dp = d - DayOffset[m];
 }
 
-#define MIN_SEC  INT64_C(-62135596800) /* 0001-01-01T00:00:00 */
-#define MAX_SEC  INT64_C(253402300799) /* 9999-12-31T23:59:59 */
-#define EPOCH    INT64_C(62135683200)  /* 1970-01-01T00:00:00 */
-
-static int
-timestamp_valid(const timestamp_t *tsp) {
-    const int64_t sec = tsp->sec + tsp->offset * 60;
-    if (sec < MIN_SEC || sec > MAX_SEC ||
-        tsp->nsec < 0 || tsp->nsec > 999999999 ||
-        tsp->offset < -1439 || tsp->offset > 1439)
-        return 0;
-    return 1;
-}
+#define EPOCH INT64_C(62135683200)  /* 1970-01-01T00:00:00 */
 
 static const uint32_t Pow10[10] = {
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000
