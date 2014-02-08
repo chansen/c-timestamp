@@ -16,6 +16,7 @@ int    timestamp_parse            (const char *str, size_t len, timestamp_t *tsp
 size_t timestamp_format           (char *dst, size_t len, const timestamp_t *tsp);
 size_t timestamp_format_precision (char *dst, size_t len, const timestamp_t *tsp, int precision);
 int    timestamp_compare          (const timestamp_t *tsp1, const timestamp_t *tsp2);
+bool   timestamp_valid            (const timestamp_t *tsp);
 
 ```
 
