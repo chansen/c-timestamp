@@ -30,36 +30,22 @@ static const uint16_t DayOffset[13] = {
     0, 306, 337, 0, 31, 61, 92, 122, 153, 184, 214, 245, 275
 };
 
+/* Rata Die algorithm by Peter Baum */
+
 static void
 rdn_to_ymd(uint32_t rdn, uint16_t *yp, uint16_t *mp, uint16_t *dp) {
-    uint16_t n100, n1, y, m;
-    uint32_t d;
+    uint32_t Z, H, A, B;
+    uint16_t y, m, d;
 
-    d = rdn + 305;
-    y = 400 * (d / 146097);
-    d %= 146097;
-
-    n100 = d / 36524;
-    d %= 36524;
-    y += 100 * n100;
-
-    y += 4 * (d / 1461);
-    d %= 1461;
-
-    n1 = d / 365;
-    d %= 365;
-    y += n1;
-
-    if (n100 == 4 || n1 == 4)
-        d = 366;
-    else
-        y++, d++;
-
-    m = (5 * d + 456) / 153;
+    Z = rdn + 306;
+    H = 100 * Z - 25;
+    A = H / 3652425;
+    B = A - (A >> 2);
+    y = (100 * B + H) / 36525;
+    d = B + Z - (1461 * y >> 2);
+    m = (535 * d + 48950) >> 14;
     if (m > 12)
-        m -= 12;
-    else
-        y--;
+        y++, m -= 12;
 
     *yp = y;
     *mp = m;
