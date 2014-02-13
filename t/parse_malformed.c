@@ -50,9 +50,11 @@ main() {
     ntests = sizeof(tests) / sizeof(*tests);
     for (i = 0; i < ntests; i++) {
         const struct test_t t = tests[i];
-        timestamp_t got;
-
-        ok(timestamp_parse(t.str, strlen(t.str), &got), "timestamp_parse(\"%s\")", t.str);
+        timestamp_t ts;
+        int ret;
+        
+        ret = timestamp_parse(t.str, strlen(t.str), &ts);
+        cmp_ok(ret, "==", 1, "timestamp_parse(\"%s\")", t.str);
     }
     done_testing();
 }

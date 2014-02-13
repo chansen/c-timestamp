@@ -87,11 +87,14 @@ main() {
     ntests = sizeof(tests) / sizeof(*tests);
     for (i = 0; i < ntests; i++) {
         const struct test_t t = tests[i];
-        timestamp_t got;
-
-        ok(!timestamp_parse(t.str, strlen(t.str), &got), "timestamp_parse(\"%s\")", t.str);
-        ok(!timestamp_compare(&got, &t.exp), "timestamp_compare(\"%s\")", t.str);
-        cmp_ok(got.offset, "==", t.exp.offset, "offset (%s)", t.str);
+        timestamp_t ts;
+        int ret;
+        
+        ret = timestamp_parse(t.str, strlen(t.str), &ts);
+        cmp_ok(ret, "==", 0, "timestamp_parse(\"%s\")", t.str);
+        ret = timestamp_compare(&ts, &t.exp);
+        cmp_ok(ret, "==", 0, "timestamp_compare(\"%s\")", t.str);
+        cmp_ok(ts.offset, "==", t.exp.offset, "offset (%s)", t.str);
     }
     done_testing();
 }
