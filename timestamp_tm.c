@@ -57,7 +57,7 @@ rdn_to_struct_tm(uint32_t rdn, struct tm *tmp) {
     tmp->tm_yday = d - 1;               /* Day of year [0,365]           */
 }
 
-#define EPOCH INT64_C(62135683200)  /* 1970-01-01T00:00:00 */
+#define RDN_OFFSET INT64_C(62135683200)  /* 1970-01-01T00:00:00 */
 
 static struct tm *
 timestamp_to_tm(const timestamp_t *tsp, struct tm *tmp, const bool local) {
@@ -67,7 +67,7 @@ timestamp_to_tm(const timestamp_t *tsp, struct tm *tmp, const bool local) {
     if (!timestamp_valid(tsp))
         return NULL;
 
-    sec = tsp->sec + EPOCH;
+    sec = tsp->sec + RDN_OFFSET;
     if (local)
         sec += tsp->offset * 60;
     rdn = sec / 86400;
